@@ -18,9 +18,9 @@ jobs:
         GCP_KEY: ${{ secrets.GCP_KEY }}
       run: echo "$GCP_KEY" | gcloud auth activate-service-account --key-file=-
 
-    - name: Configure Docker for Google Container Registry
+    - name: Configure Docker to use Google Cloud credentials
       run: |
-        echo "$GCP_KEY" | docker login -u _json_key --password-stdin https://gcr.io
+        gcloud auth configure-docker
 
     - name: Build and push Docker image
       run: |
@@ -32,6 +32,6 @@ jobs:
       run: |
         gcloud run deploy mon-application \
           --image $IMAGE_URI \
-          --region us-central1 \  # Remplace par la région souhaitée
+          --region us-central1 \
           --platform managed \
           --allow-unauthenticated
