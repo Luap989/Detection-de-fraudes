@@ -1,38 +1,19 @@
-name: Deploy to Google Cloud Run
+name: Test Google Cloud Authentication
 
 on:
   push:
     branches:
-      - main  # Déclenche le workflow sur chaque push sur la branche principale
+      - main
 
 jobs:
-  deploy:
+  authenticate:
     runs-on: ubuntu-latest
 
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
 
-    - name: Set up Google Cloud SDK
-      uses: google-github-actions/setup-gcloud@v1
-      with:
-        project_id: retailfrauddetectionai
-        service_account_key: ${{ secrets.GCP_KEY }}
-
-    - name: Authenticate Docker to Google Cloud
-      run: |
-        echo "${{ secrets.GCP_KEY }}" | docker login -u _json_key --password-stdin https://gcr.io
-
-    - name: Build and push Docker image
-      run: |
-        IMAGE_URI=gcr.io/retailfrauddetectionai/mon-application:$GITHUB_SHA
-        docker build -t $IMAGE_URI .
-        docker push $IMAGE_URI
-
-    - name: Deploy to Cloud Run
-      run: |
-        gcloud run deploy mon-application \
-          --image $IMAGE_URI \
-          --region us-central1 \  # Remplace par ta région préférée
-          --platform managed \
-          --allow-unauthenticated
+    - name: Authenticate to Google Cloud
+      env:
+        GCP_KEY: ${{ secrets.GCP_KEY }}
+      run: echo "$GCP_KEY" | gcloud auth activate-service-account --key-file=-
