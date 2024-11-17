@@ -28,10 +28,13 @@ jobs:
         docker build -t $IMAGE_URI .
         docker push $IMAGE_URI
 
+    - name: Set Google Cloud project
+      run: gcloud config set project retailfrauddetectionai
+
     - name: Deploy to Cloud Run
       run: |
         gcloud run deploy mon-application \
           --image $IMAGE_URI \
-          --region us-central1 \
+          --region europe-west1 \  # Mise à jour avec la région en Europe
           --platform managed \
           --allow-unauthenticated
