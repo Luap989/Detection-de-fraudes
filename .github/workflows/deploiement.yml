@@ -38,3 +38,5 @@ jobs:
           --region us \  # Région mise à jour pour les USA
           --platform managed \
           --allow-unauthenticated
+
+          
