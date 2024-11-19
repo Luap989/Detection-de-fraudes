@@ -20,7 +20,7 @@ jobs:
 
     - name: Configure Docker to use Google Cloud credentials
       run: |
-        gcloud auth configure-docker
+        gcloud auth configure-docker us
 
     - name: Build and push Docker image
       run: |
@@ -35,6 +35,6 @@ jobs:
       run: |
         gcloud run deploy mon-application \
           --image $IMAGE_URI \
-          -- region us \  # Mise à jour avec la région en Europe
+          --region us \  # Région mise à jour pour les USA
           --platform managed \
           --allow-unauthenticated
