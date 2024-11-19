@@ -38,3 +38,5 @@ jobs:
           --region europe-west1 \  # Mise à jour avec la région en Europe
           --platform managed \
           --allow-unauthenticated
+
+          
