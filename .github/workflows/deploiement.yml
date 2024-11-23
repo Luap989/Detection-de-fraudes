@@ -24,12 +24,12 @@ jobs:
 
     - name: Build and push Docker image
       run: |
-        IMAGE_URI=gcr.io/retailfrauddetectionai/mon-application:$GITHUB_SHA
+        IMAGE_URI=gcr.io/RetailFraudDectionAI/mon-application:$GITHUB_SHA
         docker build -t $IMAGE_URI .
         docker push $IMAGE_URI
 
     - name: Set Google Cloud project
-      run: gcloud config set project retailfrauddetectionai
+      run: gcloud config set project RetailFraudDectionAI
 
     - name: Deploy to Cloud Run
       run: |
