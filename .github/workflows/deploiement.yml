@@ -15,10 +15,13 @@ jobs:
       uses: actions/checkout@v3
 
     # Étape 2 : Authentification avec Google Cloud
-    - name: Authenticate to Google Cloud
-      env:
-        GCP_KEY: ${{ secrets.GCP_KEY }}
-      run: echo "$GCP_KEY" | gcloud auth activate-service-account --key-file=-
+    - name: Setup GCP Service Account
+      uses: GoogleCloudPlatform/github-actions/setup-gcloud@v1
+      with:
+        version: 'latest'
+        service_account_email: ${{ secrets.GCP_SA_EMAIL }}
+        service_account_key: ${{ secrets.GCP_KEY }}
+        export_default_credentials: true
 
     # Étape 3 : Configuration Docker pour Artifact Registry
     - name: Configure Docker to use Google Cloud credentials
@@ -51,4 +54,3 @@ jobs:
           --allow-unauthenticated
         
 
-          
