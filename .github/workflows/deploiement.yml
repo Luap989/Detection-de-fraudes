@@ -16,7 +16,7 @@ jobs:
 
     # Étape 2 : Authentification avec Google Cloud
     - name: Setup GCP Service Account
-      uses: google-github-actions/setup-gcloud@v1.1.2
+      uses: google-github-actions/setup-gcloud@v1
       with:
         version: 'latest'
         service_account_email: ${{ secrets.GCP_SA_EMAIL }}
