@@ -49,7 +49,6 @@ jobs:
       run: |
         gcloud run deploy fraud-detection-service \
           --image $IMAGE_URI \
-          --region europe-west1 \
+          --region us \
           --platform managed \
           --allow-unauthenticated
-          
