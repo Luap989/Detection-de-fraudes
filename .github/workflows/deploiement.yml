@@ -47,8 +47,11 @@ jobs:
     # Étape 7 : Déployer sur Cloud Run
     - name: Deploy to Cloud Run
       run: |
+        echo "Deploying to Cloud Run with image: $IMAGE_URI"
         gcloud run deploy fraud-detection-service \
           --image $IMAGE_URI \
           --region us \
           --platform managed \
-          --allow-unauthenticated
+          --allow-unauthenticated \
+          --project retailfrauddetectionai
+        echo "Deployment completed."
