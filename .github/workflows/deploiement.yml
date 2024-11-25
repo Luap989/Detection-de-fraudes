@@ -1,4 +1,4 @@
-name: Deploy to Google Cloud Run
+name: Publish
 
 on:
   push:
@@ -6,42 +6,35 @@ on:
       - main
 
 env:
-  IMAGE: us-docker.pkg.dev/retailfrauddetectionai/gcr.io/fraud-detection-service:${{ github.sha }}
+  IMAGE: gcr.io/${{ secrets.GCP_PROJECT_ID }}/helloworld:latest
 
 jobs:
-  deploy:
+  build:
+    name: Cloud Run Deployment
     runs-on: ubuntu-latest
-
     steps:
-    # Étape 1 : Cloner le dépôt
-    - name: Checkout repository
-      uses: actions/checkout@v3
+      - name: Checkout
+        uses: actions/checkout@v3
 
-    # Étape 2 : Authentification avec Google Cloud
-    - name: Authenticate to Google Cloud
-      uses: google-github-actions/auth@v0
-      with:
-        credentials_json: ${{ secrets.GCP_KEY }}
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v1
+        with:
+          credentials_json: ${{ secrets.GCP_KEY }}
 
-    # Étape 3 : Construction de l'image Docker
-    - name: Build Docker image
-      run: |
-        echo "Building Docker image: $IMAGE"
-        docker build -t $IMAGE .
-        echo "Image built successfully."
+      - name: Build Docker image
+        run: |
+          docker build -t $IMAGE .
+          echo "Image built successfully: $IMAGE"
 
-    # Étape 4 : Pousser l'image Docker
-    - name: Push Docker image to Artifact Registry
-      run: |
-        echo "Pushing Docker image: $IMAGE"
-        docker push $IMAGE
-        echo "Image pushed successfully."
+      - name: Push Docker image
+        run: |
+          docker push $IMAGE
+          echo "Image pushed successfully: $IMAGE"
 
-    # Étape 5 : Déployer sur Cloud Run
-    - name: Deploy to Cloud Run
-      uses: google-github-actions/deploy-cloudrun@v0
-      with:
-        credentials_json: ${{ secrets.GCP_KEY }}
-        service: fraud-detection-service
-        image: $IMAGE
-        region: us
+      - name: Deploy to Cloud Run
+        uses: google-github-actions/deploy-cloudrun@v0
+        with:
+          credentials_json: ${{ secrets.GCP_KEY }}
+          service: helloworld
+          image: $IMAGE
+          region: europe-west1
