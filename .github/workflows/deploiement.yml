@@ -5,6 +5,9 @@ on:
     branches:
       - main
 
+env:
+  IMAGE: us-docker.pkg.dev/retailfrauddetectionai/gcr.io/fraud-detection-service:${{ github.sha }}
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
@@ -16,42 +19,29 @@ jobs:
 
     # Étape 2 : Authentification avec Google Cloud
     - name: Authenticate to Google Cloud
-      uses: google-github-actions/auth@v1
+      uses: google-github-actions/auth@v0
       with:
         credentials_json: ${{ secrets.GCP_KEY }}
 
-    # Étape 3 : Configurer gcloud CLI
-    - name: Setup gcloud CLI
-      uses: google-github-actions/setup-gcloud@v1
-      with:
-        version: 'latest'
-        project_id: retailfrauddetectionai
-
-    # Étape 4 : Configuration Docker pour Artifact Registry
-    - name: Configure Docker to use Google Cloud credentials
+    # Étape 3 : Construction de l'image Docker
+    - name: Build Docker image
       run: |
-        gcloud auth configure-docker us
+        echo "Building Docker image: $IMAGE"
+        docker build -t $IMAGE .
+        echo "Image built successfully."
 
-    # Étape 5 : Log pour vérifier l'authentification
-    - name: Verify authentication
-      run: gcloud auth list
-
-    # Étape 6 : Construction et push de l'image Docker
-    - name: Build and push Docker image
+    # Étape 4 : Pousser l'image Docker
+    - name: Push Docker image to Artifact Registry
       run: |
-        IMAGE_URI=us-docker.pkg.dev/retailfrauddetectionai/gcr.io/fraud-detection-service:$GITHUB_SHA
-        echo "Building and pushing image: $IMAGE_URI"
-        docker build -t $IMAGE_URI .
-        docker push $IMAGE_URI
+        echo "Pushing Docker image: $IMAGE"
+        docker push $IMAGE
+        echo "Image pushed successfully."
 
-    # Étape 7 : Déployer sur Cloud Run
+    # Étape 5 : Déployer sur Cloud Run
     - name: Deploy to Cloud Run
-      run: |
-        echo "Deploying to Cloud Run with image: $IMAGE_URI"
-        gcloud run deploy fraud-detection-service \
-          --image $IMAGE_URI \
-          --region us \
-          --platform managed \
-          --allow-unauthenticated \
-          --project retailfrauddetectionai
-        echo "Deployment completed."
+      uses: google-github-actions/deploy-cloudrun@v0
+      with:
+        credentials_json: ${{ secrets.GCP_KEY }}
+        service: fraud-detection-service
+        image: $IMAGE
+        region: us
