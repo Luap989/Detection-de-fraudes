@@ -9,7 +9,7 @@ env:
   IMAGE: gcr.io/${{ secrets.GCP_PROJECT_ID }}/helloworld:latest
 
 jobs:
-  build:
+  build: 
     name: Cloud Run Deployment
     runs-on: ubuntu-latest
     steps:
