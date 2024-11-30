@@ -54,6 +54,6 @@ jobs:
         run: |
           gcloud run deploy mon-application \
             --image $IMAGE_URI \
-            --region europe-west1 \
+            --region us \
             --platform managed \
             --allow-unauthenticated
