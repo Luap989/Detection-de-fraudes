@@ -35,21 +35,18 @@ jobs:
       - name: Build Docker image
         run: |
           IMAGE_URI=gcr.io/retailfrauddetectionai/mon-application:$GITHUB_SHA
-          echo "Building Docker image with tag: $IMAGE_URI"
           docker build -t $IMAGE_URI .
 
       # Étape 6 : Push de l'image Docker dans Google Container Registry
       - name: Push Docker image
         run: |
           IMAGE_URI=gcr.io/retailfrauddetectionai/mon-application:$GITHUB_SHA
-          echo "Pushing Docker image $IMAGE_URI to Google Container Registry"
           docker push $IMAGE_URI
 
       # Étape 7 : Déploiement sur Google Cloud Run
       - name: Deploy to Cloud Run
         run: |
           IMAGE_URI=gcr.io/retailfrauddetectionai/mon-application:$GITHUB_SHA
-          echo "Deploying $IMAGE_URI to Google Cloud Run in region us"
           gcloud run deploy mon-application \
             --image $IMAGE_URI \
             --region us-central1 \
