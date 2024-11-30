@@ -52,7 +52,6 @@ jobs:
           echo "Deploying $IMAGE_URI to Google Cloud Run in region us"
           gcloud run deploy mon-application \
             --image $IMAGE_URI \
-            --region us \
+            --region us-central1 \
             --platform managed \
             --allow-unauthenticated
-            
