@@ -29,29 +29,29 @@ jobs:
 
       # Étape 4 : Authentification Docker pour Google Cloud
       - name: Configure Docker for Google Cloud
-        run: gcloud auth configure-docker
+        run: gcloud auth configure-docker us-docker.pkg.dev
 
       # Étape 5 : Build de l'image Docker
       - name: Build Docker image
         run: |
-          IMAGE_URI=gcr.io/retailfrauddetectionai/mon-application:$GITHUB_SHA
+          IMAGE_URI=us-docker.pkg.dev/retailfrauddetectionai/docker-repo/mon-application:$GITHUB_SHA
           echo "Building Docker image with tag: $IMAGE_URI"
           docker build -t $IMAGE_URI .
 
-      # Étape 6 : Push de l'image Docker dans Google Container Registry
+      # Étape 6 : Push de l'image Docker dans Google Artifact Registry
       - name: Push Docker image
         run: |
-          IMAGE_URI=gcr.io/retailfrauddetectionai/mon-application:$GITHUB_SHA
-          echo "Pushing Docker image $IMAGE_URI to Google Container Registry"
+          IMAGE_URI=us-docker.pkg.dev/retailfrauddetectionai/docker-repo/mon-application:$GITHUB_SHA
+          echo "Pushing Docker image $IMAGE_URI to Google Artifact Registry"
           docker push $IMAGE_URI
 
       # Étape 7 : Déploiement sur Google Cloud Run
       - name: Deploy to Cloud Run
         run: |
-          IMAGE_URI=gcr.io/retailfrauddetectionai/mon-application:$GITHUB_SHA
-          echo "Deploying $IMAGE_URI to Google Cloud Run in region europe-west1"
+          IMAGE_URI=us-docker.pkg.dev/retailfrauddetectionai/docker-repo/mon-application:$GITHUB_SHA
+          echo "Deploying $IMAGE_URI to Google Cloud Run in region us-central1"
           gcloud run deploy mon-application \
             --image $IMAGE_URI \
-            --region europe-west1 \
+            --region us-central1 \
             --platform managed \
             --allow-unauthenticated
