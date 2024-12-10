@@ -40,7 +40,7 @@ jobs:
       # Étape 6 : Push de l'image Docker dans Google Container Registry
       - name: Push Docker image
         run: |
-          IMAGE_URI=gcr.io/retailfrauddetectionai/mon-application:$GITHUB_SHA
+          IMAGE_URI=us.gcr.io/retailfrauddetectionai/mon-application:$GITHUB_SHA
           docker push $IMAGE_URI
 
       # Étape 7 : Déploiement sur Google Cloud Run
