@@ -31,6 +31,9 @@ jobs:
       - name: Configure Docker for Google Cloud
         run: gcloud auth configure-docker
 
+      - name: create dataset
+        run:  bq --location=US mk -d mydataset2
+
       # Étape 5 : Build de l'image Docker
       - name: Build Docker image
         run: |
