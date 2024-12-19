@@ -32,7 +32,7 @@ jobs:
         run: gcloud auth configure-docker
 
       - name: create dataset
-        run:  bq --location=US mk -d mydataset2
+        run:  bq --location=US mk -d mydataset3
 
       # Étape 5 : Build de l'image Docker
       - name: Build Docker image
