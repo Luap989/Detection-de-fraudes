@@ -2,6 +2,8 @@ from flask import Flask, request
 from google.cloud import storage, bigquery
 import base64
 import json
+import pandas as pd
+from io import BytesIO
 
 app = Flask(__name__)
 
@@ -33,8 +35,20 @@ def handle_pubsub():
     if bucket_name != "retailfrauddetectionai-event-driven-bucket":
         return f"File is from unexpected bucket: {bucket_name}", 400
 
-    # GCS file URI
-    file_uri = f"gs://{bucket_name}/{file_name}"
+    # Download file from GCS
+    bucket = storage_client.get_bucket(bucket_name)
+    blob = bucket.blob(file_name)
+    file_data = blob.download_as_bytes()
+    
+    # Load CSV into Pandas
+    df = pd.read_csv(BytesIO(file_data))
+    
+    # Clean the data: Remove first two columns
+    df_cleaned = df.iloc[:, 2:]
+
+    # Save cleaned data back to a CSV in memory
+    csv_data = df_cleaned.to_csv(index=False)
+    blob.upload_from_string(csv_data, content_type="text/csv")
 
     # Load data into BigQuery
     job_config = bigquery.LoadJobConfig(
@@ -44,10 +58,12 @@ def handle_pubsub():
     )
 
     table_ref = bigquery_client.dataset(DATASET_ID).table(TABLE_ID)
-    load_job = bigquery_client.load_table_from_uri(file_uri, table_ref, job_config=job_config)
+    load_job = bigquery_client.load_table_from_uri(
+        f"gs://{bucket_name}/{file_name}", table_ref, job_config=job_config
+    )
     load_job.result()  # Wait for the job to complete
 
-    return f"File {file_name} loaded into {DATASET_ID}.{TABLE_ID} successfully.", 200
+    return f"File {file_name} cleaned and loaded into {DATASET_ID}.{TABLE_ID} successfully.", 200
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=8080)
