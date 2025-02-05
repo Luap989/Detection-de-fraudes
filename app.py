@@ -4,6 +4,7 @@ import base64
 import json
 import pandas as pd
 from io import BytesIO
+import os
 
 app = Flask(__name__)
 
@@ -66,6 +67,5 @@ def handle_pubsub():
     return f"File {file_name} cleaned and loaded into {DATASET_ID}.{TABLE_ID} successfully.", 200
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=8080)
-    
-    
+    port = int(os.environ.get("PORT", 8080))
+    app.run(host="0.0.0.0", port=port)
