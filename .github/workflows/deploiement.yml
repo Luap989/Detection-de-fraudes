@@ -51,4 +51,5 @@ jobs:
             --image $IMAGE_URI \
             --region us-central1 \
             --platform managed \
-            --allow-unauthenticated
+            --allow-unauthenticated \
+            --memory=1024Mi
