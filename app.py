@@ -4,6 +4,7 @@ import base64
 import json
 import os
 import uuid
+import traceback
 
 app = Flask(__name__)
 
@@ -60,8 +61,8 @@ def handle_pubsub():
             f"{DATASET_ID}.{TABLE_ID}",
             job_config=job_config
         )
-        
-        # Wait for the job to complete
+
+        # Wait for the load job to complete
         load_job.result()
 
         print(f"✅ Successfully loaded data from {file_name} into {DATASET_ID}.{TABLE_ID}")
@@ -69,6 +70,8 @@ def handle_pubsub():
 
     except Exception as e:
         print(f"❌ Error loading {file_name} into BigQuery: {str(e)}")
+        # Afficher les détails complets de l'exception
+        traceback.print_exc()
         return f"Internal Server Error: {str(e)}", 500
 
 if __name__ == "__main__":
