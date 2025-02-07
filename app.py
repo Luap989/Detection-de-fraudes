@@ -50,9 +50,7 @@ def handle_pubsub():
         write_disposition=bigquery.WriteDisposition.WRITE_APPEND,  # Append to table
         allow_jagged_rows=True,  # Allow missing values
         allow_quoted_newlines=True,  # Handle newline characters in quotes
-        ignore_unknown_values=True,  # Ignore unexpected extra columns
-        use_avro_logical_types=False,
-        use_int64_timestamp=False
+        ignore_unknown_values=True  # Ignore unexpected extra columns
     )
 
     # 7️ Load the data into BigQuery
