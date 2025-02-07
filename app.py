@@ -1,83 +1,74 @@
 from flask import Flask, request
-from google.cloud import bigquery
-import base64
-import json
+from google.cloud import bigquery, storage
 import os
+import csv
 import uuid
 import traceback
 
 app = Flask(__name__)
 
-# Initialize BigQuery client
+# Initialize BigQuery and Storage clients
 bigquery_client = bigquery.Client()
+storage_client = storage.Client()
 
-# Define dataset and table
+# Define dataset, table, and bucket
 DATASET_ID = "transactions_dataset"
 TABLE_ID = "transactions_partitioned"
+BUCKET_NAME = "retailfrauddetectionai-event-driven-bucket"
 
 @app.route("/", methods=["POST"])
 def handle_pubsub():
-    """Handles Pub/Sub messages and loads data directly into BigQuery."""
-
-    # 1️ Parse the Pub/Sub message
-    envelope = request.get_json()
-    if not envelope:
-        return "Bad Request: No Pub/Sub message received", 400
-    
-    pubsub_message = envelope.get("message", {})
-    if "data" not in pubsub_message:
-        return "Bad Request: No Pub/Sub message data", 400
-    
-    # 2️ Decode the Pub/Sub message
-    # 2️ Decode the Pub/Sub message
-    message_data = json.loads(base64.b64decode(pubsub_message["data"]).decode("utf-8"))
-    bucket_name = message_data.get("bucket")
-    file_name = message_data.get("name")
-
-# Ajoute le print ici pour vérifier ce que le message Pub/Sub envoie
-    print(f"Received bucket: {bucket_name}, file: {file_name}") 
-
-    # 3️ Confirm bucket matches expected bucket
-    if bucket_name != "retailfrauddetectionai-event-driven-bucket":
-        return f"File is from unexpected bucket: {bucket_name}", 400
-
-    # 4️ Construct GCS file path
-    source_uri = f"gs://{bucket_name}/{file_name}"
-
-    # 5️ Define a unique job ID to prevent conflicts
-    job_id = f"load_{file_name.replace('.', '_')}_{uuid.uuid4().hex[:8]}"
-
-    # 6️ Define BigQuery Load Job configuration
-    job_config = bigquery.LoadJobConfig(
-        source_format=bigquery.SourceFormat.CSV,
-        skip_leading_rows=1,  # Skip header row
-        autodetect=True,  # Let BigQuery infer schema
-        write_disposition=bigquery.WriteDisposition.WRITE_APPEND,  # Append to table
-        allow_jagged_rows=True,
-        allow_quoted_newlines=True,
-        ignore_unknown_values=True,
-        use_avro_logical_types=True  # Active le Character Map V2
-)
-
-    # 7️ Load the data into BigQuery
     try:
-        load_job = bigquery_client.load_table_from_uri(
-            source_uri,
-            f"{DATASET_ID}.{TABLE_ID}",
-            job_config=job_config
+        # 1. Télécharger le fichier CSV depuis le bucket
+        blob = storage_client.bucket(BUCKET_NAME).blob("transaction_header_history.csv")
+        input_file_path = "/tmp/input.csv"
+        cleaned_file_path = "/tmp/cleaned.csv"
+        blob.download_to_filename(input_file_path)
+
+        print(f"✅ Fichier téléchargé : {input_file_path}")
+
+        # 2. Supprimer les deux premières colonnes
+        with open(input_file_path, "r") as infile, open(cleaned_file_path, "w", newline="") as outfile:
+            reader = csv.reader(infile)
+            writer = csv.writer(outfile)
+
+            # Lire l'en-tête et supprimer les deux premières colonnes
+            header = next(reader)
+            writer.writerow(header[2:])  # Écrire l'en-tête sans les deux premières colonnes
+
+            # Lire et écrire le reste des lignes sans les deux premières colonnes
+            for row in reader:
+                writer.writerow(row[2:])
+
+        print(f"✅ Fichier nettoyé et sauvegardé : {cleaned_file_path}")
+
+        # 3. Configurer le job de chargement BigQuery
+        job_config = bigquery.LoadJobConfig(
+            source_format=bigquery.SourceFormat.CSV,
+            skip_leading_rows=1,  # Skip header row
+            autodetect=True,  # Laisser BigQuery déduire le schéma
+            write_disposition=bigquery.WriteDisposition.WRITE_APPEND  # Ajouter à la table existante
         )
 
-        # Wait for the load job to complete
+        # 4. Charger les données nettoyées dans BigQuery
+        with open(cleaned_file_path, "rb") as source_file:
+            load_job = bigquery_client.load_table_from_file(
+                source_file,
+                f"{DATASET_ID}.{TABLE_ID}",
+                job_config=job_config
+            )
+
+        # Attendre la fin du job
         load_job.result()
 
-        print(f"✅ Successfully loaded data from {file_name} into {DATASET_ID}.{TABLE_ID}")
-        return f"File {file_name} successfully loaded into {DATASET_ID}.{TABLE_ID}.", 200
+        print(f"✅ Données chargées avec succès dans {DATASET_ID}.{TABLE_ID}")
+        return f"Fichier chargé avec succès dans {DATASET_ID}.{TABLE_ID}.", 200
 
     except Exception as e:
-        print(f"❌ Error loading {file_name} into BigQuery: {str(e)}")
-        # Afficher les détails complets de l'exception
+        print(f"❌ Erreur lors du chargement : {str(e)}")
         traceback.print_exc()
-        return f"Internal Server Error: {str(e)}", 500
+        return f"Erreur interne : {str(e)}", 500
+
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8080))
