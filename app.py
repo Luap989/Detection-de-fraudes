@@ -49,10 +49,11 @@ def handle_pubsub():
         skip_leading_rows=1,  # Skip header row
         autodetect=True,  # Let BigQuery infer schema
         write_disposition=bigquery.WriteDisposition.WRITE_APPEND,  # Append to table
-        allow_jagged_rows=True,  # Allow missing values
-        allow_quoted_newlines=True,  # Handle newline characters in quotes
-        ignore_unknown_values=True  # Ignore unexpected extra columns
-    )
+        allow_jagged_rows=True,
+        allow_quoted_newlines=True,
+        ignore_unknown_values=True,
+        use_avro_logical_types=True  # Active le Character Map V2
+)
 
     # 7️ Load the data into BigQuery
     try:
