@@ -52,7 +52,10 @@ def handle_pubsub():
 
             # Lire et nettoyer chaque ligne
             for row in reader:
-                cleaned_row = [value for i, value in enumerate(row) if header[i] and not header[i].startswith("Unnamed")]
+                cleaned_row = [
+                    value if header[i] and not header[i].startswith("Unnamed") else None  # Remplacer par NULL (None en Python)
+                    for i, value in enumerate(row)
+                ]
                 writer.writerow(cleaned_row)
 
         print(f"✅ Fichier nettoyé et sauvegardé : {cleaned_file_path}")
