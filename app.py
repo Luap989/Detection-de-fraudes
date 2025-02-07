@@ -19,15 +19,29 @@ BUCKET_NAME = "retailfrauddetectionai-event-driven-bucket"
 @app.route("/", methods=["POST"])
 def handle_pubsub():
     try:
-        # 1. Télécharger le fichier CSV depuis le bucket
-        blob = storage_client.bucket(BUCKET_NAME).blob("transaction_header_history.csv")
+        # 1. Lister les fichiers disponibles dans le bucket et récupérer le premier fichier CSV
+        blobs = storage_client.list_blobs(BUCKET_NAME)
+        csv_file = None
+
+        for blob in blobs:
+            if blob.name.endswith(".csv"):
+                csv_file = blob.name
+                break
+
+        if not csv_file:
+            return "Aucun fichier CSV trouvé dans le bucket.", 404
+
+        print(f"✅ Fichier CSV trouvé : {csv_file}")
+
+        # 2. Télécharger le fichier CSV
         input_file_path = "/tmp/input.csv"
         cleaned_file_path = "/tmp/cleaned.csv"
+        blob = storage_client.bucket(BUCKET_NAME).blob(csv_file)
         blob.download_to_filename(input_file_path)
 
         print(f"✅ Fichier téléchargé : {input_file_path}")
 
-        # 2. Supprimer les deux premières colonnes
+        # 3. Supprimer les deux premières colonnes
         with open(input_file_path, "r") as infile, open(cleaned_file_path, "w", newline="") as outfile:
             reader = csv.reader(infile)
             writer = csv.writer(outfile)
@@ -42,7 +56,7 @@ def handle_pubsub():
 
         print(f"✅ Fichier nettoyé et sauvegardé : {cleaned_file_path}")
 
-        # 3. Configurer le job de chargement BigQuery
+        # 4. Configurer le job de chargement BigQuery
         job_config = bigquery.LoadJobConfig(
             source_format=bigquery.SourceFormat.CSV,
             skip_leading_rows=1,  # Skip header row
@@ -50,7 +64,7 @@ def handle_pubsub():
             write_disposition=bigquery.WriteDisposition.WRITE_APPEND  # Ajouter à la table existante
         )
 
-        # 4. Charger les données nettoyées dans BigQuery
+        # 5. Charger les données nettoyées dans BigQuery
         with open(cleaned_file_path, "rb") as source_file:
             load_job = bigquery_client.load_table_from_file(
                 source_file,
