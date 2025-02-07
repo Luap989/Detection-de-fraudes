@@ -2,7 +2,6 @@ from flask import Flask, request
 from google.cloud import bigquery, storage
 import os
 import csv
-import uuid
 import traceback
 
 app = Flask(__name__)
@@ -41,18 +40,20 @@ def handle_pubsub():
 
         print(f"✅ Fichier téléchargé : {input_file_path}")
 
-        # 3. Supprimer les deux premières colonnes
+        # 3. Nettoyer les colonnes `Unnamed`
         with open(input_file_path, "r") as infile, open(cleaned_file_path, "w", newline="") as outfile:
             reader = csv.reader(infile)
             writer = csv.writer(outfile)
 
-            # Lire l'en-tête et supprimer les deux premières colonnes
+            # Lire l'en-tête et supprimer les colonnes `Unnamed`
             header = next(reader)
-            writer.writerow(header[2:])  # Écrire l'en-tête sans les deux premières colonnes
+            cleaned_header = [col for col in header if not col.startswith("Unnamed")]
+            writer.writerow(cleaned_header)
 
-            # Lire et écrire le reste des lignes sans les deux premières colonnes
+            # Lire et nettoyer chaque ligne
             for row in reader:
-                writer.writerow(row[2:])
+                cleaned_row = [value for i, value in enumerate(row) if not header[i].startswith("Unnamed")]
+                writer.writerow(cleaned_row)
 
         print(f"✅ Fichier nettoyé et sauvegardé : {cleaned_file_path}")
 
