@@ -29,9 +29,13 @@ def handle_pubsub():
         return "Bad Request: No Pub/Sub message data", 400
     
     # 2️ Decode the Pub/Sub message
+    # 2️ Decode the Pub/Sub message
     message_data = json.loads(base64.b64decode(pubsub_message["data"]).decode("utf-8"))
     bucket_name = message_data.get("bucket")
     file_name = message_data.get("name")
+
+# Ajoute le print ici pour vérifier ce que le message Pub/Sub envoie
+    print(f"Received bucket: {bucket_name}, file: {file_name}") 
 
     # 3️ Confirm bucket matches expected bucket
     if bucket_name != "retailfrauddetectionai-event-driven-bucket":
