@@ -40,28 +40,38 @@ def handle_pubsub():
 
         print(f"✅ Fichier téléchargé : {input_file_path}")
 
-        # 3. Nettoyer les colonnes `Unnamed`
+        # 3. Nettoyer toutes les colonnes inutiles (`Unnamed`, champs vides ou index)
         with open(input_file_path, "r") as infile, open(cleaned_file_path, "w", newline="") as outfile:
             reader = csv.reader(infile)
             writer = csv.writer(outfile)
 
-            # Lire l'en-tête et supprimer les colonnes `Unnamed`
+            # Lire l'en-tête et supprimer les colonnes inutiles
             header = next(reader)
-            cleaned_header = [col for col in header if not col.startswith("Unnamed")]
+            cleaned_header = [col for col in header if col and not col.startswith("Unnamed")]
             writer.writerow(cleaned_header)
 
             # Lire et nettoyer chaque ligne
             for row in reader:
-                cleaned_row = [value for i, value in enumerate(row) if not header[i].startswith("Unnamed")]
+                cleaned_row = [value for i, value in enumerate(row) if header[i] and not header[i].startswith("Unnamed")]
                 writer.writerow(cleaned_row)
 
         print(f"✅ Fichier nettoyé et sauvegardé : {cleaned_file_path}")
 
-        # 4. Configurer le job de chargement BigQuery
+        # 4. Configurer le job de chargement BigQuery avec un schéma explicite
+        schema = [
+            bigquery.SchemaField("client_id", "STRING"),
+            bigquery.SchemaField("transaction_id", "STRING"),
+            bigquery.SchemaField("purchase_date", "DATE"),
+            bigquery.SchemaField("paid_with_credit_card", "BOOL"),
+            bigquery.SchemaField("paid_with_gift_card", "BOOL"),
+            bigquery.SchemaField("gift_card_purchase_date", "DATE"),
+            bigquery.SchemaField("nb_gift_card_used", "INTEGER"),
+        ]
+
         job_config = bigquery.LoadJobConfig(
             source_format=bigquery.SourceFormat.CSV,
             skip_leading_rows=1,  # Skip header row
-            autodetect=True,  # Laisser BigQuery déduire le schéma
+            schema=schema,  # Utilisation d'un schéma explicite
             write_disposition=bigquery.WriteDisposition.WRITE_APPEND  # Ajouter à la table existante
         )
 
