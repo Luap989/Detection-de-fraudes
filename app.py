@@ -1,5 +1,6 @@
 from flask import Flask, request, jsonify
 import json
+import base64
 from google.cloud import bigquery, storage
 import os
 import traceback
@@ -44,8 +45,14 @@ def handle_pubsub():
             logging.error("❌ Message Pub/Sub sans 'data'.")
             return "Message Pub/Sub sans 'data'", 400
 
-        # Décoder le message
-        decoded_message = json.loads(data) if isinstance(data, str) else json.loads(data.decode("utf-8"))
+        # ✅ Correction : Décodage base64 du message Pub/Sub
+        try:
+            decoded_bytes = base64.b64decode(data)
+            decoded_message = json.loads(decoded_bytes.decode("utf-8"))
+        except Exception as decode_error:
+            logging.error(f"❌ Erreur lors du décodage du message Pub/Sub : {str(decode_error)}")
+            return jsonify({"status": "error", "message": "Erreur de décodage du message"}), 400
+
         logging.info(f"📌 Contenu décodé du message Pub/Sub : {json.dumps(decoded_message, indent=2)}")
 
         # Récupérer le fichier concerné (dans "name" ou "objectId")
@@ -104,5 +111,4 @@ def handle_pubsub():
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8080))
     logging.info(f"🚀 Lancement de l'application sur le port {port}...")
-    app.run(host="0.0.0.0", port=port)
-    
+    app.run(host="0.0.0.0", port=port, debug=False)
