@@ -1,4 +1,5 @@
-from flask import Flask, request
+from flask import Flask, request, jsonify
+import json
 from google.cloud import bigquery, storage
 import os
 import traceback
@@ -21,22 +22,43 @@ BUCKET_NAME = "retailfrauddetectionai-event-driven-bucket"
 @app.route("/", methods=["POST"])
 def handle_pubsub():
     try:
-        logging.info("📌 Début du traitement du fichier CSV...")
+        logging.info("📌 Réception d'un message Pub/Sub...")
 
-        # 1. Lister les fichiers disponibles dans le bucket
-        logging.info("📌 Liste des fichiers dans le bucket...")
-        blobs = storage_client.list_blobs(BUCKET_NAME)
-        csv_file = next((blob.name for blob in blobs if blob.name.endswith(".csv")), None)
+        # Vérifier si le message Pub/Sub est bien reçu
+        envelope = request.get_json()
+        if not envelope:
+            logging.error("❌ Requête sans contenu JSON.")
+            return "Requête invalide", 400
+
+        logging.info(f"📌 Message reçu : {json.dumps(envelope, indent=2)}")
+
+        # Extraire le message Pub/Sub
+        if "message" not in envelope:
+            logging.error("❌ Message Pub/Sub invalide : clé 'message' manquante.")
+            return "Message Pub/Sub invalide", 400
+
+        pubsub_message = envelope["message"]
+        data = pubsub_message.get("data")
+
+        if not data:
+            logging.error("❌ Message Pub/Sub sans 'data'.")
+            return "Message Pub/Sub sans 'data'", 400
+
+        # Décoder le message
+        decoded_message = json.loads(data) if isinstance(data, str) else json.loads(data.decode("utf-8"))
+        logging.info(f"📌 Contenu décodé du message Pub/Sub : {json.dumps(decoded_message, indent=2)}")
+
+        # Récupérer le fichier concerné (dans "name" ou "objectId")
+        csv_file = decoded_message.get("name") or decoded_message.get("objectId")
 
         if not csv_file:
-            logging.error("❌ Aucun fichier CSV trouvé dans le bucket.")
-            return "Aucun fichier CSV trouvé dans le bucket.", 404
+            logging.error("❌ Impossible de récupérer le nom du fichier dans le message Pub/Sub.")
+            return "Message Pub/Sub sans nom de fichier", 400
 
-        logging.info(f"✅ Fichier CSV trouvé : {csv_file}")
+        logging.info(f"✅ Fichier détecté dans le message Pub/Sub : {csv_file}")
 
-        # 2. Télécharger le fichier CSV
+        # 2. Télécharger le fichier CSV depuis le bucket
         input_file_path = "/tmp/input.csv"
-        logging.info(f"📌 Téléchargement du fichier {csv_file} depuis le bucket...")
         blob = storage_client.bucket(BUCKET_NAME).blob(csv_file)
         blob.download_to_filename(input_file_path)
 
@@ -66,17 +88,17 @@ def handle_pubsub():
             load_job.result()
 
             logging.info(f"✅ Données chargées avec succès dans {DATASET_ID}.{TABLE_ID}")
-            return f"Fichier chargé avec succès dans {DATASET_ID}.{TABLE_ID}.", 200
+            return jsonify({"status": "success", "message": f"Fichier {csv_file} chargé avec succès"}), 200
 
         except Exception as bq_error:
             logging.error(f"❌ Erreur lors du chargement dans BigQuery : {str(bq_error)}")
             traceback.print_exc()
-            return f"Erreur BigQuery : {str(bq_error)}", 500
+            return jsonify({"status": "error", "message": str(bq_error)}), 500
 
     except Exception as e:
         logging.error(f"❌ Erreur générale dans le script : {str(e)}")
         traceback.print_exc()
-        return f"Erreur interne : {str(e)}", 500
+        return jsonify({"status": "error", "message": str(e)}), 500
 
 
 if __name__ == "__main__":
