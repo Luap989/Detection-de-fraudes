@@ -105,3 +105,4 @@ if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8080))
     logging.info(f"🚀 Lancement de l'application sur le port {port}...")
     app.run(host="0.0.0.0", port=port)
+    
